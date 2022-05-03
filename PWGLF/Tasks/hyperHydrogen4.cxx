@@ -1,0 +1,217 @@
+#include "Common/Core/PID/PIDResponse.h"
+#include "Common/Core/RecoDecay.h"
+#include "Common/Core/TrackSelectorPID.h"
+#include "Common/DataModel/Centrality.h"
+#include "Common/DataModel/EventSelection.h"
+#include "Common/DataModel/TrackSelectionTables.h"
+#include "Common/Core/trackUtilities.h"
+#include "DetectorsVertexing/DCAFitterN.h"
+#include "Framework/AnalysisTask.h"
+#include "Framework/runDataProcessing.h"
+using namespace o2;
+using namespace o2::framework;
+using namespace o2::framework::expressions;
+
+struct hyperHydrogen4{
+  HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
+
+  void init(o2::framework::InitContext&)
+  {
+    AxisSpec vtxZAxis = {100, -20, 20};
+
+    std::vector<double> centBinning = {0., 1., 5., 10., 20., 30., 40., 50., 70., 100.};
+    AxisSpec centAxis = {centBinning, "V0M (%)"};
+    std::vector<double> ptBinning = {0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2.0, 2.2, 2.4, 2.8, 3.2, 3.6, 4., 5., 10., 20.};
+    AxisSpec ptAxis = {ptBinning, "#it{p}_{T} (GeV/#it{c})"};
+
+    histos.add("EventQA/Centrality", "Centrality distribution (V0M)", kTH1F, {centAxis});
+    histos.add("EventQA/VtxZBeforeSel", "Vertex distribution in Z;Z (cm)", kTH1F, {vtxZAxis});
+    histos.add("EventQA/VtxZAfterSel", "Vertex distribution in Z;Z (cm)", kTH1F, {vtxZAxis});
+
+    // Mass QA (quick check) PDG value: 3.931
+    histos.add("hyperHydrogen4invmass", "Invariant mass of Hyper Hydrogen 4", kTH1F, {{1400, 3.4, 4.6, "Invariant Mass (GeV/#it{c}^2)"}});
+    histos.add("antihyperHydrogen4invmass", "Invariant mass of Anti-Hyper Hydrogen 4", kTH1F, {{1400, 3.4, 4.6, "Invariant Mass (GeV/#it{c}^2)"}});
+
+    // 3d histogram
+    histos.add("h3hyperHydrogen4invmass", "Invariant mass of Hyper Hydrogen 4", kTH3F, {{100, 0.0f, 100.0f}, {150, 0.0f, 15.0f}, {1400, 3.4, 4.6}});
+    histos.add("h3antihyperHydrogen4invmass", "Invariant mass of Anti-Hyper Hydrogen 4", kTH3F, {{100, 0.0f, 100.0f}, {150, 0.0f, 15.0f}, {1400, 3.4, 4.6}});
+  }
+
+  // Configurables
+  Configurable<double> d_bz{"d_bz", -5.0, "bz field"};
+
+  /// DCA Selections
+  // DCAr to PV
+  Configurable<double> cMaxDCArToPVcut1{"cMaxDCArToPVcut1", 0.05, "Track1 DCAr cut to PV Maximum"};
+  Configurable<double> cMaxDCArToPVcut2{"cMaxDCArToPVcut2", 0.05, "Track2 DCAr cut to PV Maximum"};
+  // DCAz to PV
+  Configurable<double> cMaxDCAzToPVcut1{"cMaxDCAzToPVcut1", 2.0, "Track1 DCAz cut to PV Maximum"};
+  Configurable<double> cMaxDCAzToPVcut2{"cMaxDCAzToPVcut2", 2.0, "Track2 DCAz cut to PV Maximum"};
+  Configurable<double> cMinDCAzToPVcut1{"cMinDCAzToPVcut1", 0.0, "Track1 DCAz cut to PV Minimum"};
+  Configurable<double> cMinDCAzToPVcut2{"cMinDCAzToPVcut2", 0.0, "Track2 DCAz cut to PV Minimum"};
+
+  // Secondary vertex selections
+  Configurable<float> cHyperCosPA{"cHyperCosPA", 0.995, "Hyper CosPA to PV"};
+  Configurable<float> cMaxDCAHyper{"cMaxDCAHyper", 1.5, "Maximum DCA between hyper daughters"};
+  Configurable<float> cMinHyperRadius{"cMinHyperRadius", 5.0, "Minimum hyper radius from PV"};
+
+  /// PID selections
+  // TPC
+  Configurable<float> pidTPCMinpT{"pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
+  Configurable<float> pidTPCMaxpT{"pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
+  Configurable<float> nSigmaTPC{"nSigmaTPC", 5., "Nsigma cut on TPC only"};
+  Configurable<float> nSigmaTPCCombined{"nSigmaTPCCombined", 5., "Nsigma cut on TPC combined with TOF"};
+  // TOF
+  Configurable<float> pidTOFMinpT{"pidTOFMinpT", 0.15, "Lower bound of track pT for TOF PID"};
+  Configurable<float> pidTOFMaxpT{"pidTOFMaxpT", 10., "Upper bound of track pT for TOF PID"};
+  Configurable<float> nSigmaTOF{"nSigmaTOF", 5., "Nsigma cut on TOF only"};
+  Configurable<float> nSigmaTOFCombined{"nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
+
+  double massPi = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
+  double massAlpha = TDatabasePDG::Instance()->GetParticle(o2::track::PID::Alpha)->Mass();
+
+  void process(const soa::Join<o2::aod::Collisions, o2::aod::EvSels, aod::CentV0Ms>::iterator& inputCollision,
+               soa::Join<aod::Tracks, aod::TracksExtended, aod::TracksCov, aod::TracksExtra, aod::pidTPCEl, aod::pidTPCMu, aod::pidTPCPi, aod::pidTPCKa, aod::pidTPCPr,
+                                 aod::pidTOFEl, aod::pidTOFMu, aod::pidTOFPi, aod::pidTOFKa, aod::pidTOFPr> const& tracks)
+  {
+    // Performing the event selection
+    if (!inputCollision.alias()[kINT7]) {
+      return;
+    }
+    if (!inputCollision.sel7()) {
+      return;
+    } // <- why we need two int7 cuts here? (B.Lim)
+
+    histos.fill(HIST("EventQA/VtxZBeforeSel"), inputCollision.posZ());
+    if (abs(inputCollision.posZ()) > 10.f) {
+      return;
+    } // z- vertext cut
+    histos.fill(HIST("EventQA/VtxZAfterSel"), inputCollision.posZ());
+
+    // fill centrality histos
+    histos.fill(HIST("EventQA/Centrality"), inputCollision.centV0M());
+
+
+    // Define o2 fitter, 2-prong
+    o2::vertexing::DCAFitterN<2> fitter;
+    fitter.setBz(d_bz);
+    fitter.setPropagateToPCA(true);
+    fitter.setMaxR(200.);
+    fitter.setMinParamChange(1e-3);
+    fitter.setMinRelChi2Change(0.9);
+    fitter.setMaxDZIni(1e9);   // Don't use
+    fitter.setMaxChi2(1e9);    // Don't use
+    fitter.setUseAbsDCA(true); // use d_UseAbsDCA once we want to use the weighted DCA
+
+    /// PID selectors
+    // Pion
+    TrackSelectorPID selectorPion(kPiPlus);
+    selectorPion.setRangePtTPC(pidTPCMinpT, pidTPCMaxpT);
+    selectorPion.setRangeNSigmaTPC(-nSigmaTPC, nSigmaTPC);
+    selectorPion.setRangeNSigmaTPCCondTOF(-nSigmaTPCCombined, nSigmaTPCCombined);
+    selectorPion.setRangePtTOF(pidTOFMinpT, pidTOFMaxpT);
+    selectorPion.setRangeNSigmaTOF(-nSigmaTOF, nSigmaTOF);
+    selectorPion.setRangeNSigmaTOFCondTPC(-nSigmaTOFCombined, nSigmaTOFCombined);
+    // Alpha
+    TrackSelectorPID selectorAlpha(selectorPion); // copy the selection criteria
+    selectorAlpha.setPDG(o2::track::PID::Alpha);                 // overide only pdg code
+    for (auto trk1 : tracks) {
+      auto trk1ID = trk1.globalIndex(); // 1st Track's ID
+      for (auto trk2 : tracks) {
+        auto trk2ID = trk2.globalIndex(); // 2nd Track's ID
+        // Prevent double counting
+        if (trk2ID < trk1ID)
+          continue;
+        // Prevent same track
+        if (trk1ID == trk2ID)
+          continue;
+
+        // Daughter DCA to PV cuts
+        double trk1DCAr = trk1.dcaXY();
+        double trk2DCAr = trk2.dcaXY();
+        double trk1DCAz = trk1.dcaZ();
+        double trk2DCAz = trk2.dcaZ();
+        if ((trk1DCAz < cMinDCAzToPVcut1) || (trk2DCAz < cMinDCAzToPVcut2))
+          continue;
+        if ((trk1DCAz > cMaxDCAzToPVcut1) || (trk2DCAz > cMaxDCAzToPVcut2))
+          continue;
+        if ((trk1DCAr > cMaxDCArToPVcut1) || (trk2DCAr > cMaxDCArToPVcut2))
+          continue;
+
+        // Un-like sign pair only
+        if (trk1.sign() * trk2.sign() > 0)
+          continue;
+
+        std::array<float, 3> pos = {0.};
+        std::array<float, 3> pvec0 = {0.};
+        std::array<float, 3> pvec1 = {0.};
+
+        // Track PID cuts
+        // TPC only PID
+        int pidTrack1PionTPC = selectorPion.getStatusTrackPIDTPC(trk1);
+        int pidTrack1AlphaTPC = selectorAlpha.getStatusTrackPIDTPC(trk1);
+        int pidTrack2PionTPC = selectorPion.getStatusTrackPIDTPC(trk2);
+        int pidTrack2AlphaTPC = selectorAlpha.getStatusTrackPIDTPC(trk2);
+
+        // TPC+TOF PID
+        int pidTrack1Pion = selectorPion.getStatusTrackPIDAll(trk1);
+        int pidTrack1Alpha = selectorAlpha.getStatusTrackPIDAll(trk1);
+        int pidTrack2Pion = selectorPion.getStatusTrackPIDAll(trk2);
+        int pidTrack2Alpha = selectorAlpha.getStatusTrackPIDAll(trk2);
+
+        auto track1 = getTrackParCov(trk1);
+        auto track2 = getTrackParCov(trk2);
+        int nCand = fitter.process(track1, track2);
+        if (nCand != 0) {
+          fitter.propagateTracksToVertex();
+          const auto& vtx = fitter.getPCACandidate();
+          for (int i = 0; i < 3; i++) {
+            pos[i] = vtx[i];
+          }
+          fitter.getTrack(0).getPxPyPzGlo(pvec0);
+          fitter.getTrack(1).getPxPyPzGlo(pvec1);
+        } else {
+          continue;
+        }
+
+        auto isAnti = (pidTrack1AlphaTPC < 5) ? false : true;
+
+        // Secondary Vertex selections
+        if (fitter.getChi2AtPCACandidate() > cMaxDCAHyper)
+          continue;
+
+        auto hyperCosinePA = RecoDecay::CPA(array{inputCollision.posX(), inputCollision.posY(), inputCollision.posZ()}, array{pos[0], pos[1], pos[2]}, array{pvec0[0] + pvec1[0], pvec0[1] + pvec1[1], pvec0[2] + pvec1[2]});
+        if (hyperCosinePA < cHyperCosPA)
+          continue;
+
+        auto hyperradius = RecoDecay::sqrtSumOfSquares(pos[0], pos[1]);
+        if (hyperradius < cMinHyperRadius)
+          continue;
+        
+        auto hyperpT = RecoDecay::sqrtSumOfSquares(pvec0[0] + pvec0[1], pvec1[0] + pvec1[1]);
+
+        auto arrMom = array{
+        array{pvec0[0], pvec0[1], pvec0[2]},
+        array{pvec1[0], pvec1[1], pvec1[2]}};
+        auto arrMass = array{massPi, massAlpha};
+        auto hyperMass = RecoDecay::M2(arrMom, arrMass);
+
+        if (!isAnti) {
+            histos.fill(HIST("hyperHydrogen4invmass"), hyperMass);
+            histos.fill(HIST("h3hyperHydrogen4invmass"), inputCollision.centV0M(), hyperpT, hyperMass);
+        }
+        if (isAnti) {
+            histos.fill(HIST("antihyperHydrogen4invmass"), hyperMass);
+            histos.fill(HIST("h3antihyperHydrogen4invmass"), inputCollision.centV0M(), hyperpT, hyperMass);
+        }
+
+      }
+    }
+  }
+};
+
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
+{
+  WorkflowSpec workflow{adaptAnalysisTask<hyperHydrogen4>(cfgc)};
+  return workflow;
+}
