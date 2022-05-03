@@ -71,8 +71,9 @@ struct hyperHydrogen4{
   double massAlpha = TDatabasePDG::Instance()->GetParticle(o2::track::PID::Alpha)->Mass();
 
   void process(const soa::Join<o2::aod::Collisions, o2::aod::EvSels, aod::CentV0Ms>::iterator& inputCollision,
-               soa::Join<aod::Tracks, aod::TracksExtended, aod::TracksCov, aod::TracksExtra, aod::pidTPCEl, aod::pidTPCMu, aod::pidTPCPi, aod::pidTPCKa, aod::pidTPCPr,
-                                 aod::pidTOFEl, aod::pidTOFMu, aod::pidTOFPi, aod::pidTOFKa, aod::pidTOFPr> const& tracks)
+                soa::Join<aod::Track, aod::TrackExtended, aod::TrackCov, aod::TrackExtra, aod::pidTPCEl, aod::pidTPCMu, aod::pidTPCPi, aod::pidTPCKa, aod::pidTPCPr,
+                          aod::pidTOFEl, aod::pidTOFMu, aod::pidTOFPi, aod::pidTOFKa, aod::pidTOFPr> const& track,
+                aod::V0Datas const& fullV0s)
   {
     // Performing the event selection
     if (!inputCollision.alias()[kINT7]) {
@@ -115,22 +116,15 @@ struct hyperHydrogen4{
     // Alpha
     TrackSelectorPID selectorAlpha(selectorPion); // copy the selection criteria
     selectorAlpha.setPDG(o2::track::PID::Alpha);                 // overide only pdg code
-    for (auto trk1 : tracks) {
-      auto trk1ID = trk1.globalIndex(); // 1st Track's ID
-      for (auto trk2 : tracks) {
-        auto trk2ID = trk2.globalIndex(); // 2nd Track's ID
-        // Prevent double counting
-        if (trk2ID < trk1ID)
-          continue;
-        // Prevent same track
-        if (trk1ID == trk2ID)
-          continue;
+    for (auto v0: fullV0s) {
+        auto posTrack = v0.posTrack_as<aod::Track>();
+        auto negTrack = v0.negTrack_as<aod::Track>();
 
         // Daughter DCA to PV cuts
-        double trk1DCAr = trk1.dcaXY();
-        double trk2DCAr = trk2.dcaXY();
-        double trk1DCAz = trk1.dcaZ();
-        double trk2DCAz = trk2.dcaZ();
+        double trk1DCAr = posTrack.dcaXY();
+        double trk2DCAr = negTrack.dcaXY();
+        double trk1DCAz = posTrack.dcaZ();
+        double trk2DCAz = negTrack.dcaZ();
         if ((trk1DCAz < cMinDCAzToPVcut1) || (trk2DCAz < cMinDCAzToPVcut2))
           continue;
         if ((trk1DCAz > cMaxDCAzToPVcut1) || (trk2DCAz > cMaxDCAzToPVcut2))
@@ -139,7 +133,7 @@ struct hyperHydrogen4{
           continue;
 
         // Un-like sign pair only
-        if (trk1.sign() * trk2.sign() > 0)
+        if (posTrack.sign() * negTrack.sign() > 0)
           continue;
 
         std::array<float, 3> pos = {0.};
@@ -148,64 +142,45 @@ struct hyperHydrogen4{
 
         // Track PID cuts
         // TPC only PID
-        int pidTrack1PionTPC = selectorPion.getStatusTrackPIDTPC(trk1);
-        int pidTrack1AlphaTPC = selectorAlpha.getStatusTrackPIDTPC(trk1);
-        int pidTrack2PionTPC = selectorPion.getStatusTrackPIDTPC(trk2);
-        int pidTrack2AlphaTPC = selectorAlpha.getStatusTrackPIDTPC(trk2);
+        int pidTrack1PionTPC = selectorPion.getStatusTrackPIDTPC(posTrack);
+        int pidTrack1AlphaTPC = selectorAlpha.getStatusTrackPIDTPC(posTrack);
+        int pidTrack2PionTPC = selectorPion.getStatusTrackPIDTPC(negTrack);
+        int pidTrack2AlphaTPC = selectorAlpha.getStatusTrackPIDTPC(negTrack);
 
         // TPC+TOF PID
-        int pidTrack1Pion = selectorPion.getStatusTrackPIDAll(trk1);
-        int pidTrack1Alpha = selectorAlpha.getStatusTrackPIDAll(trk1);
-        int pidTrack2Pion = selectorPion.getStatusTrackPIDAll(trk2);
-        int pidTrack2Alpha = selectorAlpha.getStatusTrackPIDAll(trk2);
-
-        auto track1 = getTrackParCov(trk1);
-        auto track2 = getTrackParCov(trk2);
-        int nCand = fitter.process(track1, track2);
-        if (nCand != 0) {
-          fitter.propagateTracksToVertex();
-          const auto& vtx = fitter.getPCACandidate();
-          for (int i = 0; i < 3; i++) {
-            pos[i] = vtx[i];
-          }
-          fitter.getTrack(0).getPxPyPzGlo(pvec0);
-          fitter.getTrack(1).getPxPyPzGlo(pvec1);
-        } else {
-          continue;
-        }
+        int pidTrack1Pion = selectorPion.getStatusTrackPIDAll(posTrack);
+        int pidTrack1Alpha = selectorAlpha.getStatusTrackPIDAll(posTrack);
+        int pidTrack2Pion = selectorPion.getStatusTrackPIDAll(negTrack);
+        int pidTrack2Alpha = selectorAlpha.getStatusTrackPIDAll(negTrack);
 
         auto isAnti = (pidTrack1AlphaTPC < 5) ? false : true;
 
         // Secondary Vertex selections
-        if (fitter.getChi2AtPCACandidate() > cMaxDCAHyper)
+        if (v0.dcaV0daughters() > cMaxDCAHyper)
           continue;
 
-        auto hyperCosinePA = RecoDecay::CPA(array{inputCollision.posX(), inputCollision.posY(), inputCollision.posZ()}, array{pos[0], pos[1], pos[2]}, array{pvec0[0] + pvec1[0], pvec0[1] + pvec1[1], pvec0[2] + pvec1[2]});
-        if (hyperCosinePA < cHyperCosPA)
+        if (v0.v0cosPA < cHyperCosPA)
           continue;
 
         auto hyperradius = RecoDecay::sqrtSumOfSquares(pos[0], pos[1]);
         if (hyperradius < cMinHyperRadius)
           continue;
         
-        auto hyperpT = RecoDecay::sqrtSumOfSquares(pvec0[0] + pvec0[1], pvec1[0] + pvec1[1]);
-
         auto arrMom = array{
-        array{pvec0[0], pvec0[1], pvec0[2]},
-        array{pvec1[0], pvec1[1], pvec1[2]}};
+            array{v0.pxpos(), v0.pypos(), v0.pzpos()},
+            array{v0.pxneg(), v0.pyneg(), v0.pzneg()}
+        };
         auto arrMass = array{massPi, massAlpha};
         auto hyperMass = RecoDecay::M2(arrMom, arrMass);
-
+        
         if (!isAnti) {
             histos.fill(HIST("hyperHydrogen4invmass"), hyperMass);
-            histos.fill(HIST("h3hyperHydrogen4invmass"), inputCollision.centV0M(), hyperpT, hyperMass);
+            histos.fill(HIST("h3hyperHydrogen4invmass"), inputCollision.centV0M(), v0.pt(), hyperMass);
         }
         if (isAnti) {
             histos.fill(HIST("antihyperHydrogen4invmass"), hyperMass);
-            histos.fill(HIST("h3antihyperHydrogen4invmass"), inputCollision.centV0M(), hyperpT, hyperMass);
-        }
-
-      }
+            histos.fill(HIST("h3antihyperHydrogen4invmass"), inputCollision.centV0M(), v0.pt(), hyperMass);
+        }   
     }
   }
 };
