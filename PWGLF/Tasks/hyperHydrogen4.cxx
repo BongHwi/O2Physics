@@ -92,18 +92,6 @@ struct hyperHydrogen4{
     // fill centrality histos
     histos.fill(HIST("EventQA/Centrality"), inputCollision.centV0M());
 
-
-    // Define o2 fitter, 2-prong
-    o2::vertexing::DCAFitterN<2> fitter;
-    fitter.setBz(d_bz);
-    fitter.setPropagateToPCA(true);
-    fitter.setMaxR(200.);
-    fitter.setMinParamChange(1e-3);
-    fitter.setMinRelChi2Change(0.9);
-    fitter.setMaxDZIni(1e9);   // Don't use
-    fitter.setMaxChi2(1e9);    // Don't use
-    fitter.setUseAbsDCA(true); // use d_UseAbsDCA once we want to use the weighted DCA
-
     /// PID selectors
     // Pion
     TrackSelectorPID selectorPion(kPiPlus);
