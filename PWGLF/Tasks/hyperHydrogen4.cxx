@@ -29,6 +29,7 @@
 #include "PID/PIDResponse.h"
 
 #include "Common/Core/RecoDecay.h"
+#include "Common/DataModel/StrangenessTables.h"
 
 using namespace o2;
 using namespace o2::framework;
