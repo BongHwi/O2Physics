@@ -1,13 +1,35 @@
-#include "Common/Core/PID/PIDResponse.h"
-#include "Common/Core/RecoDecay.h"
-#include "Common/Core/TrackSelectorPID.h"
-#include "Common/DataModel/Centrality.h"
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+//
+// 
+//
+
+#include "Framework/runDataProcessing.h"
+#include "Framework/AnalysisTask.h"
+#include "Framework/AnalysisDataModel.h"
+#include "Framework/ASoAHelpers.h"
+
 #include "Common/DataModel/EventSelection.h"
+#include "Common/DataModel/Centrality.h"
+#include "ReconstructionDataFormats/Track.h"
+#include "Common/Core/TrackSelection.h"
 #include "Common/DataModel/TrackSelectionTables.h"
 #include "Common/Core/trackUtilities.h"
-#include "DetectorsVertexing/DCAFitterN.h"
-#include "Framework/AnalysisTask.h"
-#include "Framework/runDataProcessing.h"
+
+#include "Common/Core/PID/PIDResponse.h"
+#include "Common/Core/TrackSelectorPID.h"
+#include "PID/PIDResponse.h"
+
+#include "Common/Core/RecoDecay.h"
+
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
@@ -70,9 +92,8 @@ struct hyperHydrogen4{
   double massPi = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
   double massAlpha = TDatabasePDG::Instance()->GetParticle(o2::track::PID::Alpha)->Mass();
 
-  void process(const soa::Join<o2::aod::Collisions, o2::aod::EvSels, aod::CentV0Ms>::iterator& inputCollision,
-                soa::Join<aod::Track, aod::TrackExtended, aod::TrackCov, aod::TrackExtra, aod::pidTPCEl, aod::pidTPCMu, aod::pidTPCPi, aod::pidTPCKa, aod::pidTPCPr,
-                          aod::pidTOFEl, aod::pidTOFMu, aod::pidTOFPi, aod::pidTOFKa, aod::pidTOFPr> const& track,
+  void process(const soa::Join<o2::aod::Collisions, o2::aod::EvSels, aod::CentRun2V0Ms>::iterator& inputCollision,
+                soa::Join<aod::Track, aod::TrackCov, aod::TrackExtra, aod::pidTPCPi, aod::pidTPCAl, aod::pidTOFAl> const& track,
                 aod::V0Datas const& fullV0s)
   {
     // Performing the event selection
@@ -90,17 +111,13 @@ struct hyperHydrogen4{
     histos.fill(HIST("EventQA/VtxZAfterSel"), inputCollision.posZ());
 
     // fill centrality histos
-    histos.fill(HIST("EventQA/Centrality"), inputCollision.centV0M());
+    histos.fill(HIST("EventQA/Centrality"), inputCollision.centRun2V0M());
 
     /// PID selectors
     // Pion
     TrackSelectorPID selectorPion(kPiPlus);
     selectorPion.setRangePtTPC(pidTPCMinpT, pidTPCMaxpT);
     selectorPion.setRangeNSigmaTPC(-nSigmaTPC, nSigmaTPC);
-    selectorPion.setRangeNSigmaTPCCondTOF(-nSigmaTPCCombined, nSigmaTPCCombined);
-    selectorPion.setRangePtTOF(pidTOFMinpT, pidTOFMaxpT);
-    selectorPion.setRangeNSigmaTOF(-nSigmaTOF, nSigmaTOF);
-    selectorPion.setRangeNSigmaTOFCondTPC(-nSigmaTOFCombined, nSigmaTOFCombined);
     // Alpha
     TrackSelectorPID selectorAlpha(selectorPion); // copy the selection criteria
     selectorAlpha.setPDG(o2::track::PID::Alpha);                 // overide only pdg code
@@ -124,10 +141,6 @@ struct hyperHydrogen4{
         if (posTrack.sign() * negTrack.sign() > 0)
           continue;
 
-        std::array<float, 3> pos = {0.};
-        std::array<float, 3> pvec0 = {0.};
-        std::array<float, 3> pvec1 = {0.};
-
         // Track PID cuts
         // TPC only PID
         int pidTrack1PionTPC = selectorPion.getStatusTrackPIDTPC(posTrack);
@@ -147,11 +160,10 @@ struct hyperHydrogen4{
         if (v0.dcaV0daughters() > cMaxDCAHyper)
           continue;
 
-        if (v0.v0cosPA < cHyperCosPA)
+        if (v0.v0cosPA() < cHyperCosPA)
           continue;
 
-        auto hyperradius = RecoDecay::sqrtSumOfSquares(pos[0], pos[1]);
-        if (hyperradius < cMinHyperRadius)
+        if (v0.v0radius() < cMinHyperRadius)
           continue;
         
         auto arrMom = array{
@@ -163,11 +175,11 @@ struct hyperHydrogen4{
         
         if (!isAnti) {
             histos.fill(HIST("hyperHydrogen4invmass"), hyperMass);
-            histos.fill(HIST("h3hyperHydrogen4invmass"), inputCollision.centV0M(), v0.pt(), hyperMass);
+            histos.fill(HIST("h3hyperHydrogen4invmass"), inputCollision.centRun2V0M(), v0.pt(), hyperMass);
         }
         if (isAnti) {
             histos.fill(HIST("antihyperHydrogen4invmass"), hyperMass);
-            histos.fill(HIST("h3antihyperHydrogen4invmass"), inputCollision.centV0M(), v0.pt(), hyperMass);
+            histos.fill(HIST("h3antihyperHydrogen4invmass"), inputCollision.centRun2V0M(), v0.pt(), hyperMass);
         }   
     }
   }
