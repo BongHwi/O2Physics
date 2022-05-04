@@ -15,6 +15,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/ASoA.h"
 #include "Framework/ASoAHelpers.h"
 
 #include "Common/DataModel/EventSelection.h"
@@ -25,7 +26,6 @@
 #include "Common/Core/trackUtilities.h"
 
 #include "Common/Core/PID/PIDResponse.h"
-#include "Common/Core/TrackSelectorPID.h"
 #include "PID/PIDResponse.h"
 
 #include "Common/Core/RecoDecay.h"
@@ -35,7 +35,9 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-struct hyperHydrogen4{
+using hyperTracks = soa::Join<aod::Tracks, aod::TracksExtended, aod::TracksCov, aod::TracksExtra, aod::pidTPCPi,aod::pidTPCAl, aod::pidTOFAl>;
+
+struct hyperhydrogen4{
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(o2::framework::InitContext&)
@@ -52,16 +54,13 @@ struct hyperHydrogen4{
     histos.add("EventQA/VtxZAfterSel", "Vertex distribution in Z;Z (cm)", kTH1F, {vtxZAxis});
 
     // Mass QA (quick check) PDG value: 3.931
-    histos.add("hyperHydrogen4invmass", "Invariant mass of Hyper Hydrogen 4", kTH1F, {{1400, 3.4, 4.6, "Invariant Mass (GeV/#it{c}^2)"}});
-    histos.add("antihyperHydrogen4invmass", "Invariant mass of Anti-Hyper Hydrogen 4", kTH1F, {{1400, 3.4, 4.6, "Invariant Mass (GeV/#it{c}^2)"}});
+    histos.add("hyperhydrogen4invmass", "Invariant mass of Hyper Hydrogen 4", kTH1F, {{1400, 3.4, 4.6, "Invariant Mass (GeV/#it{c}^2)"}});
+    histos.add("antihyperhydrogen4invmass", "Invariant mass of Anti-Hyper Hydrogen 4", kTH1F, {{1400, 3.4, 4.6, "Invariant Mass (GeV/#it{c}^2)"}});
 
     // 3d histogram
-    histos.add("h3hyperHydrogen4invmass", "Invariant mass of Hyper Hydrogen 4", kTH3F, {{100, 0.0f, 100.0f}, {150, 0.0f, 15.0f}, {1400, 3.4, 4.6}});
-    histos.add("h3antihyperHydrogen4invmass", "Invariant mass of Anti-Hyper Hydrogen 4", kTH3F, {{100, 0.0f, 100.0f}, {150, 0.0f, 15.0f}, {1400, 3.4, 4.6}});
+    histos.add("h3hyperhydrogen4invmass", "Invariant mass of Hyper Hydrogen 4", kTH3F, {{100, 0.0f, 100.0f}, {150, 0.0f, 15.0f}, {1400, 3.4, 4.6}});
+    histos.add("h3antihyperhydrogen4invmass", "Invariant mass of Anti-Hyper Hydrogen 4", kTH3F, {{100, 0.0f, 100.0f}, {150, 0.0f, 15.0f}, {1400, 3.4, 4.6}});
   }
-
-  // Configurables
-  Configurable<double> d_bz{"d_bz", -5.0, "bz field"};
 
   /// DCA Selections
   // DCAr to PV
@@ -80,21 +79,14 @@ struct hyperHydrogen4{
 
   /// PID selections
   // TPC
-  Configurable<float> pidTPCMinpT{"pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
-  Configurable<float> pidTPCMaxpT{"pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
-  Configurable<float> nSigmaTPC{"nSigmaTPC", 5., "Nsigma cut on TPC only"};
-  Configurable<float> nSigmaTPCCombined{"nSigmaTPCCombined", 5., "Nsigma cut on TPC combined with TOF"};
-  // TOF
-  Configurable<float> pidTOFMinpT{"pidTOFMinpT", 0.15, "Lower bound of track pT for TOF PID"};
-  Configurable<float> pidTOFMaxpT{"pidTOFMaxpT", 10., "Upper bound of track pT for TOF PID"};
-  Configurable<float> nSigmaTOF{"nSigmaTOF", 5., "Nsigma cut on TOF only"};
-  Configurable<float> nSigmaTOFCombined{"nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
-
+  Configurable<float> nSigmaTPCmin{"nSigmaTPCmin", -5., "min Nsigma cut on TPC only"};
+  Configurable<float> nSigmaTPCmax{"nSigmaTPCmax", 5., "max Nsigma cut on TPC only"};
+  
   double massPi = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
   double massAlpha = TDatabasePDG::Instance()->GetParticle(o2::track::PID::Alpha)->Mass();
 
   void process(const soa::Join<o2::aod::Collisions, o2::aod::EvSels, aod::CentRun2V0Ms>::iterator& inputCollision,
-                soa::Join<aod::Track, aod::TrackCov, aod::TrackExtra, aod::pidTPCPi, aod::pidTPCAl, aod::pidTOFAl> const& track,
+                hyperTracks const& track,
                 aod::V0Datas const& fullV0s)
   {
     // Performing the event selection
@@ -114,17 +106,9 @@ struct hyperHydrogen4{
     // fill centrality histos
     histos.fill(HIST("EventQA/Centrality"), inputCollision.centRun2V0M());
 
-    /// PID selectors
-    // Pion
-    TrackSelectorPID selectorPion(kPiPlus);
-    selectorPion.setRangePtTPC(pidTPCMinpT, pidTPCMaxpT);
-    selectorPion.setRangeNSigmaTPC(-nSigmaTPC, nSigmaTPC);
-    // Alpha
-    TrackSelectorPID selectorAlpha(selectorPion); // copy the selection criteria
-    selectorAlpha.setPDG(o2::track::PID::Alpha);                 // overide only pdg code
     for (auto v0: fullV0s) {
-        auto posTrack = v0.posTrack_as<aod::Track>();
-        auto negTrack = v0.negTrack_as<aod::Track>();
+        auto posTrack = v0.posTrack_as<hyperTracks>();
+        auto negTrack = v0.negTrack_as<hyperTracks>();
 
         // Daughter DCA to PV cuts
         double trk1DCAr = posTrack.dcaXY();
@@ -142,45 +126,57 @@ struct hyperHydrogen4{
         if (posTrack.sign() * negTrack.sign() > 0)
           continue;
 
-        // Track PID cuts
-        // TPC only PID
-        int pidTrack1PionTPC = selectorPion.getStatusTrackPIDTPC(posTrack);
-        int pidTrack1AlphaTPC = selectorAlpha.getStatusTrackPIDTPC(posTrack);
-        int pidTrack2PionTPC = selectorPion.getStatusTrackPIDTPC(negTrack);
-        int pidTrack2AlphaTPC = selectorAlpha.getStatusTrackPIDTPC(negTrack);
+        // PID
+        auto nSigmaPosTrackPionTPC = posTrack.tpcNSigmaPi();
+        auto nSigmaNegTrackPionTPC = negTrack.tpcNSigmaPi();
+        auto nSigmaPosTrackAlphaTPC = posTrack.tpcNSigmaAl();
+        auto nSigmaNegTrackAlphaTPC = negTrack.tpcNSigmaAl();
+        auto nSigmaPosTrackAlphaTOF = posTrack.tofNSigmaAl();
+        auto nSigmaNegTrackAlphaTOF = negTrack.tofNSigmaAl();
 
-        // TPC+TOF PID
-        int pidTrack1Pion = selectorPion.getStatusTrackPIDAll(posTrack);
-        int pidTrack1Alpha = selectorAlpha.getStatusTrackPIDAll(posTrack);
-        int pidTrack2Pion = selectorPion.getStatusTrackPIDAll(negTrack);
-        int pidTrack2Alpha = selectorAlpha.getStatusTrackPIDAll(negTrack);
+        if ((nSigmaPosTrackAlphaTPC < nSigmaTPCmin || nSigmaPosTrackAlphaTPC > nSigmaTPCmax) 
+         && (nSigmaNegTrackAlphaTPC < nSigmaTPCmin || nSigmaNegTrackAlphaTPC > nSigmaTPCmax)) {
+            continue;
+        }
+        if (nSigmaPosTrackAlphaTPC > nSigmaTPCmin && nSigmaPosTrackAlphaTPC < nSigmaTPCmax 
+         && nSigmaNegTrackAlphaTPC > nSigmaTPCmin && nSigmaNegTrackAlphaTPC < nSigmaTPCmax) {
+            continue;
+        }
+        
+        auto isAnti = (std::abs(nSigmaPosTrackAlphaTPC) < 5) ? false : true;
+        // auto isAnti = false;
 
-        auto isAnti = (pidTrack1AlphaTPC < 5) ? false : true;
+        auto alpha = (!isAnti) ? posTrack : negTrack;
+        auto pion = (!isAnti) ? negTrack : posTrack;
 
         // Secondary Vertex selections
         if (v0.dcaV0daughters() > cMaxDCAHyper)
           continue;
 
-        if (v0.v0cosPA() < cHyperCosPA)
+        if (v0.v0cosPA(inputCollision.posX(), inputCollision.posY(), inputCollision.posZ()) < cHyperCosPA)
           continue;
 
         if (v0.v0radius() < cMinHyperRadius)
           continue;
         
-        auto arrMom = array{
-            array{v0.pxpos(), v0.pypos(), v0.pzpos()},
-            array{v0.pxneg(), v0.pyneg(), v0.pzneg()}
-        };
+        auto alphaP = array{(!isAnti) ? 2*v0.pxpos() : 2*v0.pxneg(),
+                            (!isAnti) ? 2*v0.pypos() : 2*v0.pyneg(), 
+                            (!isAnti) ? 2*v0.pzpos() : 2*v0.pzneg()}; // x2 due to the charge of Alpha
+        auto piP = array{(!isAnti) ? v0.pxneg() : v0.pxpos(), 
+                         (!isAnti) ? v0.pyneg() : v0.pypos(), 
+                         (!isAnti) ? v0.pzneg() : v0.pzpos()};
+        auto arrMom = array{alphaP, piP};
         auto arrMass = array{massPi, massAlpha};
         auto hyperMass = RecoDecay::M2(arrMom, arrMass);
         
+        // QA Histograms
         if (!isAnti) {
-            histos.fill(HIST("hyperHydrogen4invmass"), hyperMass);
-            histos.fill(HIST("h3hyperHydrogen4invmass"), inputCollision.centRun2V0M(), v0.pt(), hyperMass);
+            histos.fill(HIST("hyperhydrogen4invmass"), hyperMass);
+            histos.fill(HIST("h3hyperhydrogen4invmass"), inputCollision.centRun2V0M(), v0.pt(), hyperMass);
         }
         if (isAnti) {
-            histos.fill(HIST("antihyperHydrogen4invmass"), hyperMass);
-            histos.fill(HIST("h3antihyperHydrogen4invmass"), inputCollision.centRun2V0M(), v0.pt(), hyperMass);
+            histos.fill(HIST("antihyperhydrogen4invmass"), hyperMass);
+            histos.fill(HIST("h3antihyperhydrogen4invmass"), inputCollision.centRun2V0M(), v0.pt(), hyperMass);
         }   
     }
   }
@@ -188,6 +184,6 @@ struct hyperHydrogen4{
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<hyperHydrogen4>(cfgc)};
+  WorkflowSpec workflow{adaptAnalysisTask<hyperhydrogen4>(cfgc)};
   return workflow;
 }
