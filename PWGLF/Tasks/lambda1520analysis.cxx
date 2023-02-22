@@ -85,21 +85,21 @@ struct lambda1520analysis {
     auto h = histos.add<TH1>("QA/Event/EnumEvents", "Event selection; ; Event Count", {HistType::kTH1F, {{10, 0, 10}}});
     h->GetXaxis()->SetBinLabel(1, "Events read and Ev. sel. passed");
     h->GetXaxis()->SetBinLabel(2, "posZ passed");
-    histos.add("QA/Event/VertexZ", "Event selection; Vertex Z (cm); Selected Events", {HistType::kTH1F, {{4000, -20, 20}}});
-    histos.add("QA/Event/Selected/VertexZ", "Event selection; Vertex Z (cm); Selected Events", {HistType::kTH1F, {{4000, -20, 20}}});
+    histos.add("QA/Event/VertexZ", "Event selection; Vertex Z (cm); Selected Events", {HistType::kTH1F, {{100, -20, 20}}});
+    histos.add("QA/Event/Selected/VertexZ", "Event selection; Vertex Z (cm); Selected Events", {HistType::kTH1F, {{100, -20, 20}}});
 
     //  PID QA
     //  --- Kaon
     histos.add("QA/Kaon/TOF_TPC_Map", "TOF + TPC Combined PID for Kaons; #sigma_{TOF}^{Kaon}; #sigma_{TPC}^{Kaon}; Counts;", {HistType::kTH2F, {{1000, -10, 10}, {1000, -10, 10}}});
-    histos.add("QA/Kaon/TOF_Nsigma", "TOF NSigma for Kaons; #it{p}_{T} (GeV/#it{c}); #sigma_{TOF}^{Kaon};", {HistType::kTH2F, {{1000, 0, 20}, {1000, -10, 10}}});
-    histos.add("QA/Kaon/TPC_Nsigma", "TPC NSigma for Kaons; #it{p}_{T} (GeV/#it{c}); #sigma_{TPC}^{Kaon};", {HistType::kTH2F, {{1000, 0, 20}, {1000, -10, 10}}});
+    histos.add("QA/Kaon/TOF_Nsigma", "TOF NSigma for Kaons; #it{p}_{T} (GeV/#it{c}); #sigma_{TOF}^{Kaon};", {HistType::kTH2F, {{100, 0, 10}, {1000, -10, 10}}});
+    histos.add("QA/Kaon/TPC_Nsigma", "TPC NSigma for Kaons; #it{p}_{T} (GeV/#it{c}); #sigma_{TPC}^{Kaon};", {HistType::kTH2F, {{100, 0, 10}, {1000, -10, 10}}});
     //  --- Proton
     histos.add("QA/Proton/TOF_TPC_Map", "TOF + TPC Combined PID for Protons; #sigma_{TOF}^{Proton}; #sigma_{TPC}^{Proton}; Counts;", {HistType::kTH2F, {{1000, -10, 10}, {1000, -10, 10}}});
-    histos.add("QA/Proton/TOF_Nsigma", "TOF NSigma for Protons; #it{p}_{T} (GeV/#it{c}); #sigma_{TOF}^{Proton};", {HistType::kTH2F, {{1000, 0, 20}, {1000, -10, 10}}});
-    histos.add("QA/Proton/TPC_Nsigma", "TPC NSigma for Protons; #it{p}_{T} (GeV/#it{c}); #sigma_{TPC}^{Proton};", {HistType::kTH2F, {{1000, 0, 20}, {1000, -10, 10}}});
+    histos.add("QA/Proton/TOF_Nsigma", "TOF NSigma for Protons; #it{p}_{T} (GeV/#it{c}); #sigma_{TOF}^{Proton};", {HistType::kTH2F, {{100, 0, 10}, {1000, -10, 10}}});
+    histos.add("QA/Proton/TPC_Nsigma", "TPC NSigma for Protons; #it{p}_{T} (GeV/#it{c}); #sigma_{TPC}^{Proton};", {HistType::kTH2F, {{100, 0, 10}, {1000, -10, 10}}});
 
-    histos.add("QA/Kaon/pT", "pT distribution of Kaons; #it{p}_{T} (GeV/#it{c}); Counts;", {HistType::kTH1F, {{1000, 0, 20}}});
-    histos.add("QA/Proton/pT", "pT distribution of Protons; #it{p}_{T} (GeV/#it{c}); Counts;", {HistType::kTH1F, {{1000, 0, 20}}});
+    histos.add("QA/Kaon/pT", "pT distribution of Kaons; #it{p}_{T} (GeV/#it{c}); Counts;", {HistType::kTH1F, {{100, 0, 10}}});
+    histos.add("QA/Proton/pT", "pT distribution of Protons; #it{p}_{T} (GeV/#it{c}); Counts;", {HistType::kTH1F, {{100, 0, 10}}});
 
     // Mass QA (quick check)
     histos.add("Analysis/lambda1520invmass", "Invariant mass of #Lambda(1520) K^{#pm}p^{#mp}; Invariant Mass (GeV/#it{c}^2); Counts;", {HistType::kTH1F, {{500, 1.3, 1.8}}});
@@ -109,16 +109,16 @@ struct lambda1520analysis {
     histos.add("Analysis/lambda1520invmassME", "Invariant mass of #Lambda(1520) mixed event K^{#pm}p^{#mp}; Invariant Mass (GeV/#it{c}^2); Counts;", {HistType::kTH1F, {{500, 1.3, 1.8}}});
 
     // 3d histogram
-    histos.add("Analysis/h3lambda1520invmass", "Invariant mass of #Lambda(1520) K^{#pm}p^{#mp}", HistType::kTH3F, {{1000, 0.0f, 2000.0f, "mult_{TPC}"}, {100, 0.0f, 10.0f, "#it{p}_{T} (GeV/#it{c})"}, {500, 1.3, 1.8, "Invariant Mass (GeV/#it{c}^2)"}});
-    histos.add("Analysis/h3lambda1520invmassLS", "Invariant mass of #Lambda(1520) Like Sign Method K^{#pm}p^{#pm}", HistType::kTH3F, {{1000, 0.0f, 2000.0f, "mult_{TPC}"}, {100, 0.0f, 10.0f, "#it{p}_{T} (GeV/#it{c})"}, {500, 1.3, 1.8, "Invariant Mass (GeV/#it{c}^2)"}});
-    histos.add("Analysis/h3lambda1520invmassLSkp", "Invariant mass of #Lambda(1520) Like Sign Method K^{#plus}p^{#plus}", HistType::kTH3F, {{1000, 0.0f, 2000.0f, "mult_{TPC}"}, {100, 0.0f, 10.0f, "#it{p}_{T} (GeV/#it{c})"}, {500, 1.3, 1.8, "Invariant Mass (GeV/#it{c}^2)"}});         // K+ + Pr
-    histos.add("Analysis/h3lambda1520invmassLSkbarpbar", "Invariant mass of #Lambda(1520) Like Sign Method K^{#minus}p^{#minus}", HistType::kTH3F, {{1000, 0.0f, 2000.0f, "mult_{TPC}"}, {100, 0.0f, 10.0f, "#it{p}_{T} (GeV/#it{c})"}, {500, 1.3, 1.8, "Invariant Mass (GeV/#it{c}^2)"}}); // K- + anti-Pr
-    histos.add("Analysis/h3lambda1520invmassME", "Invariant mass of #Lambda(1520) mixed event K^{#pm}p^{#mp}", HistType::kTH3F, {{1000, 0.0f, 2000.0f, "mult_{TPC}"}, {100, 0.0f, 10.0f, "#it{p}_{T} (GeV/#it{c})"}, {500, 1.3, 1.8, "Invariant Mass (GeV/#it{c}^2)"}});
+    histos.add("Analysis/h3lambda1520invmass", "Invariant mass of #Lambda(1520) K^{#pm}p^{#mp}", HistType::kTH3F, {{200, 0.0f, 2000.0f, "mult_{TPC}"}, {100, 0.0f, 10.0f, "#it{p}_{T} (GeV/#it{c})"}, {500, 1.3, 1.8, "Invariant Mass (GeV/#it{c}^2)"}});
+    histos.add("Analysis/h3lambda1520invmassLS", "Invariant mass of #Lambda(1520) Like Sign Method K^{#pm}p^{#pm}", HistType::kTH3F, {{200, 0.0f, 2000.0f, "mult_{TPC}"}, {100, 0.0f, 10.0f, "#it{p}_{T} (GeV/#it{c})"}, {500, 1.3, 1.8, "Invariant Mass (GeV/#it{c}^2)"}});
+    histos.add("Analysis/h3lambda1520invmassLSkp", "Invariant mass of #Lambda(1520) Like Sign Method K^{#plus}p^{#plus}", HistType::kTH3F, {{200, 0.0f, 2000.0f, "mult_{TPC}"}, {100, 0.0f, 10.0f, "#it{p}_{T} (GeV/#it{c})"}, {500, 1.3, 1.8, "Invariant Mass (GeV/#it{c}^2)"}});         // K+ + Pr
+    histos.add("Analysis/h3lambda1520invmassLSkbarpbar", "Invariant mass of #Lambda(1520) Like Sign Method K^{#minus}p^{#minus}", HistType::kTH3F, {{200, 0.0f, 2000.0f, "mult_{TPC}"}, {100, 0.0f, 10.0f, "#it{p}_{T} (GeV/#it{c})"}, {500, 1.3, 1.8, "Invariant Mass (GeV/#it{c}^2)"}}); // K- + anti-Pr
+    histos.add("Analysis/h3lambda1520invmassME", "Invariant mass of #Lambda(1520) mixed event K^{#pm}p^{#mp}", HistType::kTH3F, {{200, 0.0f, 2000.0f, "mult_{TPC}"}, {100, 0.0f, 10.0f, "#it{p}_{T} (GeV/#it{c})"}, {500, 1.3, 1.8, "Invariant Mass (GeV/#it{c}^2)"}});
 
     if (doprocessMC) {
-      histos.add("MC/h3recolambda1520invmass", "Invariant mass of Reconstructed MC #Lambda(1520)", HistType::kTH3F, {{1000, 0.0f, 2000.0f, "mult_{TPC}"}, {100, 0.0f, 10.0f, "#it{p}_{T} (GeV/#it{c})"}, {500, 1.3, 1.8, "Invariant Mass (GeV/#it{c}^2)"}});
-      histos.add("MC/truelambda1520pt", "pT distribution of True MC #Lambda(1520); #it{p}_{T} (GeV/#it{c}); Counts;", {HistType::kTH1F, {{100, 0, 20}}});
-      histos.add("MC/reconlambda1520pt", "pT distribution of Reconstructed MC #Lambda(1520); #it{p}_{T} (GeV/#it{c}); Counts;", {HistType::kTH1F, {{100, 0, 20}}});
+      histos.add("MC/h3recolambda1520invmass", "Invariant mass of Reconstructed MC #Lambda(1520)", HistType::kTH3F, {{200, 0.0f, 2000.0f, "mult_{TPC}"}, {100, 0.0f, 10.0f, "#it{p}_{T} (GeV/#it{c})"}, {500, 1.3, 1.8, "Invariant Mass (GeV/#it{c}^2)"}});
+      histos.add("MC/truelambda1520pt", "pT distribution of True MC #Lambda(1520); #it{p}_{T} (GeV/#it{c}); Counts;", {HistType::kTH1F, {{100, 0, 10}}});
+      histos.add("MC/reconlambda1520pt", "pT distribution of Reconstructed MC #Lambda(1520); #it{p}_{T} (GeV/#it{c}); Counts;", {HistType::kTH1F, {{100, 0, 10}}});
       histos.add("MC/reconlambda1520invmass", "Inv mass distribution of Reconstructed MC #Lambda(1520); #it{p}_{T} (GeV/#it{c}); Counts;", {HistType::kTH1F, {{500, 1.3, 1.8}}});
     }
   }
@@ -145,34 +145,49 @@ struct lambda1520analysis {
     for (auto& [trk1, trk2] : combinations(CombinationsUpperIndexPolicy(dTracks, dTracks))) {
 
       // Trk1: Kaon, Trk2: Proton
-      // pT-dependent TPC PID cut
-      if ((trk1.pt() < 0.3) && (std::abs(trk1.tpcNSigmaKa()) > 6.0))
+      // pT-dependent PID cut
+      // TPC PID cut
+      if ((trk1.pt() < 0.2) && (std::abs(trk1.tpcNSigmaKa()) > 4.0))
         continue;
-      if ((trk1.pt() >= 0.3) && (trk1.pt() < 0.4) && (std::abs(trk1.tpcNSigmaKa()) > 4.0))
+      if ((trk1.pt() >= 0.2) && (trk1.pt() < 0.4) && (std::abs(trk1.tpcNSigmaKa()) > 3.0))
         continue;
-      if ((trk1.pt() >= 0.4) && (std::abs(trk1.tpcNSigmaKa()) > 2.0))
+      if ((trk1.pt() >= 0.4) && (trk1.pt() < 0.45) && (std::abs(trk1.tpcNSigmaKa()) > 2.0))
         continue;
 
-      if ((trk2.pt() < 0.3) && (std::abs(trk2.tpcNSigmaPr()) > 6.0))
+      if ((trk1.tofPIDselectionFlag() & aod::resodaughter::kHasTOF) != aod::resodaughter::kHasTOF) {
+        if ((trk1.pt() >= 0.45) && (trk1.pt() < 0.6) && (std::abs(trk1.tpcNSigmaKa()) > 2.0))
+          continue;
+        if (trk1.pt() > 0.6)
+          continue;
+      }
+
+      if ((trk2.pt() < 0.25) && (std::abs(trk2.tpcNSigmaPr()) > 4.0))
         continue;
-      if ((trk2.pt() >= 0.3) && (trk2.pt() < 0.4) && (std::abs(trk2.tpcNSigmaPr()) > 4.0))
+      if ((trk2.pt() >= 0.25) && (trk2.pt() < 0.7) && (std::abs(trk2.tpcNSigmaPr()) > 3.0))
         continue;
-      if ((trk2.pt() >= 0.4) && (std::abs(trk2.tpcNSigmaPr()) > 2.0))
+      if ((trk2.pt() >= 0.7) && (trk2.pt() < 0.8) && (std::abs(trk2.tpcNSigmaPr()) > 2.0))
         continue;
+
+      if ((trk2.tofPIDselectionFlag() & aod::resodaughter::kHasTOF) != aod::resodaughter::kHasTOF) {
+        if ((trk2.pt() >= 0.8) && (trk2.pt() < 1.1) && (std::abs(trk2.tpcNSigmaPr()) > 2.0))
+          continue;
+        if (trk2.pt() > 1.1)
+          continue;
+      }
 
       // TOF PID cut
       if ((trk1.tofPIDselectionFlag() & aod::resodaughter::kHasTOF) == aod::resodaughter::kHasTOF) {
-        if (std::abs(trk1.tofNSigmaKa()) > static_cast<float_t>(pidnSigmaPreSelectionCut))
+        if ((trk1.pt() >= 0.1) && (std::abs(trk1.tofNSigmaKa()) > static_cast<float_t>(pidnSigmaPreSelectionCut)))
           continue;
-        if (std::abs(trk1.tpcNSigmaKa()) > static_cast<float_t>(pidnSigmaTPCCuthasTOF))
+        if ((trk1.pt() >= 0.1) && (std::abs(trk1.tpcNSigmaKa()) > static_cast<float_t>(pidnSigmaTPCCuthasTOF)))
           continue;
         // LOGF(info, "Inside the TOF PID: value for Track 1: %f, PIDflag: %d, check: %d", trk1.tofNSigmaKa(), trk1.tofPIDselectionFlag(), trk1.tofPIDselectionFlag() & aod::resodaughter::kHasTOF);
       }
 
       if ((trk2.tofPIDselectionFlag() & aod::resodaughter::kHasTOF) == aod::resodaughter::kHasTOF) {
-        if (std::abs(trk2.tofNSigmaPr()) > static_cast<float_t>(pidnSigmaPreSelectionCut))
+        if ((trk2.pt() >= 0.1) && (std::abs(trk2.tofNSigmaPr()) > static_cast<float_t>(pidnSigmaPreSelectionCut)))
           continue;
-        if (std::abs(trk2.tpcNSigmaPr()) > static_cast<float_t>(pidnSigmaTPCCuthasTOF))
+        if ((trk2.pt() >= 0.1) && (std::abs(trk2.tpcNSigmaPr()) > static_cast<float_t>(pidnSigmaTPCCuthasTOF)))
           continue;
         // LOGF(info, "Inside the TOF PID: value for Track 2: %f, PIDflag: %d, check: %d", trk2.tofNSigmaPr(), trk2.tofPIDselectionFlag(), trk2.tofPIDselectionFlag() & aod::resodaughter::kHasTOF);
       }
@@ -318,34 +333,49 @@ struct lambda1520analysis {
           continue;
 
         // Trk1: Kaon, Trk2: Proton
-        // pT-dependent TPC PID cut
-        if ((trk1.pt() < 0.3) && (std::abs(trk1.tpcNSigmaKa()) > 6.0))
+        // pT-dependent PID cut
+        // TPC PID cut
+        if ((trk1.pt() < 0.2) && (std::abs(trk1.tpcNSigmaKa()) > 4.0))
           continue;
-        if ((trk1.pt() >= 0.3) && (trk1.pt() < 0.4) && (std::abs(trk1.tpcNSigmaKa()) > 4.0))
+        if ((trk1.pt() >= 0.2) && (trk1.pt() < 0.4) && (std::abs(trk1.tpcNSigmaKa()) > 3.0))
           continue;
-        if ((trk1.pt() >= 0.4) && (std::abs(trk1.tpcNSigmaKa()) > 2.0))
+        if ((trk1.pt() >= 0.4) && (trk1.pt() < 0.45) && (std::abs(trk1.tpcNSigmaKa()) > 2.0))
           continue;
 
-        if ((trk2.pt() < 0.3) && (std::abs(trk2.tpcNSigmaPr()) > 6.0))
+        if ((trk1.tofPIDselectionFlag() & aod::resodaughter::kHasTOF) != aod::resodaughter::kHasTOF) {
+          if ((trk1.pt() >= 0.45) && (trk1.pt() < 0.6) && (std::abs(trk1.tpcNSigmaKa()) > 2.0))
+            continue;
+          if (trk1.pt() > 0.6)
+            continue;
+        }
+
+        if ((trk2.pt() < 0.25) && (std::abs(trk2.tpcNSigmaPr()) > 4.0))
           continue;
-        if ((trk2.pt() >= 0.3) && (trk2.pt() < 0.4) && (std::abs(trk2.tpcNSigmaPr()) > 4.0))
+        if ((trk2.pt() >= 0.25) && (trk2.pt() < 0.7) && (std::abs(trk2.tpcNSigmaPr()) > 3.0))
           continue;
-        if ((trk2.pt() >= 0.4) && (std::abs(trk2.tpcNSigmaPr()) > 2.0))
+        if ((trk2.pt() >= 0.7) && (trk2.pt() < 0.8) && (std::abs(trk2.tpcNSigmaPr()) > 2.0))
           continue;
+
+        if ((trk2.tofPIDselectionFlag() & aod::resodaughter::kHasTOF) != aod::resodaughter::kHasTOF) {
+          if ((trk2.pt() >= 0.8) && (trk2.pt() < 1.1) && (std::abs(trk2.tpcNSigmaPr()) > 2.0))
+            continue;
+          if (trk2.pt() > 1.1)
+            continue;
+        }
 
         // TOF PID cut
         if ((trk1.tofPIDselectionFlag() & aod::resodaughter::kHasTOF) == aod::resodaughter::kHasTOF) {
-          if (std::abs(trk1.tofNSigmaKa()) > static_cast<float_t>(pidnSigmaPreSelectionCut))
+          if ((trk1.pt() >= 0.1) && (std::abs(trk1.tofNSigmaKa()) > static_cast<float_t>(pidnSigmaPreSelectionCut)))
             continue;
-          if (std::abs(trk1.tpcNSigmaKa()) > static_cast<float_t>(pidnSigmaTPCCuthasTOF))
+          if ((trk1.pt() >= 0.1) && (std::abs(trk1.tpcNSigmaKa()) > static_cast<float_t>(pidnSigmaTPCCuthasTOF)))
             continue;
           // LOGF(info, "Inside the TOF PID: value for Track 1: %f, PIDflag: %d, check: %d", trk1.tofNSigmaKa(), trk1.tofPIDselectionFlag(), trk1.tofPIDselectionFlag() & aod::resodaughter::kHasTOF);
         }
 
         if ((trk2.tofPIDselectionFlag() & aod::resodaughter::kHasTOF) == aod::resodaughter::kHasTOF) {
-          if (std::abs(trk2.tofNSigmaPr()) > static_cast<float_t>(pidnSigmaPreSelectionCut))
+          if ((trk2.pt() >= 0.1) && (std::abs(trk2.tofNSigmaPr()) > static_cast<float_t>(pidnSigmaPreSelectionCut)))
             continue;
-          if (std::abs(trk2.tpcNSigmaPr()) > static_cast<float_t>(pidnSigmaTPCCuthasTOF))
+          if ((trk2.pt() >= 0.1) && (std::abs(trk2.tpcNSigmaPr()) > static_cast<float_t>(pidnSigmaTPCCuthasTOF)))
             continue;
           // LOGF(info, "Inside the TOF PID: value for Track 2: %f, PIDflag: %d, check: %d", trk2.tofNSigmaPr(), trk2.tofPIDselectionFlag(), trk2.tofPIDselectionFlag() & aod::resodaughter::kHasTOF);
         }
