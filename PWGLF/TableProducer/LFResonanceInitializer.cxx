@@ -100,7 +100,8 @@ struct reso2initializer {
                                                     || (aod::mcparticle::pdgCode == 113)     // rho(770)
                                                     || (aod::mcparticle::pdgCode == 213)     // rho(770)pm
                                                     || (aod::mcparticle::pdgCode == 3224)    // Sigma(1385)+
-                                                    || (aod::mcparticle::pdgCode == 3124)    // Sigma(1385)-
+                                                    || (aod::mcparticle::pdgCode == 3114)    // Sigma(1385)-
+                                                    || (aod::mcparticle::pdgCode == 3124)    // Lamda(1520)0
                                                     || (aod::mcparticle::pdgCode == 3324)    // Xi(1530)0
                                                     || (aod::mcparticle::pdgCode == 123314)  // Xi(1820)0
                                                     || (aod::mcparticle::pdgCode == 123324); // Xi(1820)-0
@@ -507,6 +508,7 @@ struct reso2initializer {
       } else {
         daughterPDGs = {-1, -1};
       }
+      LOGF(INFO, "MC particle: %d %d %d %d %d %d %f %f %f %f %f %f", mcPart.globalIndex(), mcPart.pdgCode(), daughterPDGs[0], daughterPDGs[1], mcPart.isPhysicalPrimary(), mcPart.producedByGenerator(), mcPart.pt(), mcPart.px(), mcPart.py(), mcPart.pz(), mcPart.eta(), mcPart.phi());
       reso2mcparents(resoCollisions.lastIndex(),
                      mcPart.globalIndex(),
                      mcPart.pdgCode(),

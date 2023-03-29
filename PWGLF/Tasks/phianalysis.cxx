@@ -15,7 +15,6 @@
 ///
 /// \author Bong-Hwi Lim <bong-hwi.lim@cern.ch>
 
-#include <CCDB/BasicCCDBManager.h>
 #include <TLorentzVector.h>
 
 #include "Common/DataModel/PIDResponse.h"
@@ -33,12 +32,10 @@ using namespace o2::framework::expressions;
 using namespace o2::soa;
 
 struct phianalysis {
-  framework::Service<o2::ccdb::BasicCCDBManager> ccdb; /// Accessing the CCDB
   ConfigurableAxis CfgMultBins{"CfgMultBins", {VARIABLE_WIDTH, 0.0f, 20.0f, 40.0f, 60.0f, 80.0f, 100.0f, 200.0f, 99999.f}, "Mixing bins - multiplicity"};
   ConfigurableAxis CfgVtxBins{"CfgVtxBins", {VARIABLE_WIDTH, -10.0f, -8.f, -6.f, -4.f, -2.f, 0.f, 2.f, 4.f, 6.f, 8.f, 10.f}, "Mixing bins - z-vertex"};
 
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
-  HistogramRegistry qaRegistry{"QAHistos", {}, OutputObjHandlingPolicy::QAObject};
   // Configurables
 
   // Pre-selection cuts
@@ -57,12 +54,6 @@ struct phianalysis {
 
   void init(o2::framework::InitContext&)
   {
-    ccdb->setURL("http://alice-ccdb.cern.ch");
-    ccdb->setCaching(true);
-    ccdb->setLocalObjectValidityChecking();
-    uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    ccdb->setCreatedNotAfter(now);
-
     AxisSpec vtxZAxis = {100, -20, 20};
 
     std::vector<double> centBinning = {0., 1., 5., 10., 20., 30., 40., 50., 70., 100.};
@@ -93,6 +84,8 @@ struct phianalysis {
       histos.add("reconphiinvmass", "Inv mass distribution of Reconstructed MC Phi", kTH1F, {{700, 0.8, 1.5, "Invariant Mass (GeV/#it{c}^2)"}});
     }
   }
+
+  Partition<aod::ResoMCParents> selectedMCParticles = (aod::mcparticle::pdgCode == static_cast<Int_t>(333)); // Phi
 
   double massKa = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
 
@@ -183,7 +176,7 @@ struct phianalysis {
   PROCESS_SWITCH(phianalysis, processData, "Process Event for data", true);
 
   void processMC(aod::ResoCollisions& collisions,
-                 soa::Join<aod::ResoTracks, aod::ResoMCTracks> const& resotracks, aod::McParticles const& mcParticles)
+                 soa::Join<aod::ResoTracks, aod::ResoMCTracks> const& resotracks, aod::ResoMCParents const& resoParents, aod::McParticles const& mcParticles)
   {
     LOGF(debug, "[MC] MC events: %d", collisions.size());
     for (auto& collision : collisions) {
@@ -191,23 +184,15 @@ struct phianalysis {
       selectedTracks.bindTable(resotracks);
       auto colTracks = selectedTracks->sliceByCached(aod::resodaughter::resoCollisionId, collision.globalIndex());
       fillHistograms<true>(collision, colTracks);
-    }
 
-    // Not related to the real collisions
-    for (auto& part : mcParticles) {             // loop over all MC particles
-      if (abs(part.pdgCode()) == 333) {          // Phi
+      auto particles = selectedMCParticles->sliceByCached(aod::resodaughter::resoCollisionId, collision.globalIndex());
+      for (auto& part : particles) {             // loop over all MC particles
         if (part.y() > 0.5 || part.y() < -0.5) { // rapidity cut
           continue;
         }
-        bool isDecaytoKaons = true;
-        for (auto& dau : part.daughters_as<aod::McParticles>()) {
-          if (abs(dau.pdgCode()) != kKPlus) { // Decay to Kaons
-            isDecaytoKaons = false;
-            break;
-          }
-        }
-        if (!isDecaytoKaons)
+        if (abs(part.daughterPDG1()) != kKPlus || abs(part.daughterPDG2()) != kKPlus) { // check if the daughters are kaons
           continue;
+        }
         histos.fill(HIST("truephipt"), part.pt());
       }
     }
