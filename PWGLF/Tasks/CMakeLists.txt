@@ -138,7 +138,7 @@ o2physics_add_dpl_workflow(hyhefour-analysis
 
 o2physics_add_dpl_workflow(k1analysis
                     SOURCES k1analysis.cxx
-                    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
+                    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2::DCAFitter O2::DetectorsBase
                     COMPONENT_NAME Analysis)
 
 o2physics_add_dpl_workflow(phianalysisrun3
