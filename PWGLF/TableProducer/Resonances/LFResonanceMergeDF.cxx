@@ -64,7 +64,7 @@ struct reso2dfmerged {
   Configurable<int> nDF{"nDF", 1, "no of combination of collision"};
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
 
-  using resoCols = aod::ResoCollisions;
+  using resoCols = soa::Join<aod::ResoCollisions, aod::ResoColSpheros, aod::ResoColEventPlanes>;
   using resoTracks = aod::ResoTracks;
 
   void init(InitContext const&)

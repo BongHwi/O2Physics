@@ -34,6 +34,7 @@ struct f0980analysis {
   SliceCache cache;
   Preslice<aod::ResoTracks> perRCol = aod::resodaughter::resoCollisionId;
   Preslice<aod::Tracks> perCollision = aod::track::collisionId;
+  using resoCols = soa::Join<aod::ResoCollisions, aod::ResoColEventPlanes>;
   HistogramRegistry histos{
     "histos",
     {},
@@ -263,7 +264,7 @@ struct f0980analysis {
     }
   }
 
-  void processData(aod::ResoCollision& collision,
+  void processData(resoCols::iterator const& collision,
                    aod::ResoTracks const& resotracks)
   {
     fillHistograms<false>(collision, resotracks);
@@ -271,7 +272,7 @@ struct f0980analysis {
   PROCESS_SWITCH(f0980analysis, processData, "Process Event for data", true);
 
   void processMCLight(
-    aod::ResoCollision& collision,
+    resoCols::iterator const& collision,
     soa::Join<aod::ResoTracks, aod::ResoMCTracks> const& resotracks)
   {
     fillHistograms<true>(collision, resotracks);
