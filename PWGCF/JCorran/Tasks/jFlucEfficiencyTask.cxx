@@ -82,6 +82,7 @@ struct JFlucEfficiencyTask {
                        ((requireGlobalTrackInFilter()) ||
                         (aod::track::isGlobalTrackSDD == (uint8_t) true));
 
+  Configurable<int> cfgCentBinsForMC{"cfgCentBinsForMC", 1, "Centrality bins for MC, 0: off, 1: on"};
   Configurable<bool> cfgEfficiencyFromData{"cfgEfficiencyFromData", false, "Calculate efficiency using data events as reference"};
   Configurable<int> cfgVerbosity{"cfgVerbosity", 0, "Verbosity level"};
 
@@ -167,7 +168,7 @@ struct JFlucEfficiencyTask {
 
   void processMC(soa::Filtered<aod::CFMcCollisions>::iterator const& mcCollision, soa::Filtered<aod::CFMcParticles> const& mcParticles)
   {
-    float centrality = mcCollision.multiplicity();
+    float centrality = mcCollision.multiplicity(); // multiplicity: number of primary particles TODO: apply percentiles
 
     for (const auto& particle : mcParticles) {
       if (!particle.isPhysicalPrimary()) {
@@ -205,16 +206,6 @@ struct JFlucEfficiencyTask {
     }
   }
 
-  template <typename TCollision, typename TTracks>
-  void fillQA(const TCollision& /*collision*/, float multiplicity, const TTracks& tracks)
-  {
-    registry.fill(HIST("multiplicity"), multiplicity);
-    for (const auto& track : tracks) {
-      registry.fill(HIST("yields"), multiplicity, track.pt(), track.eta());
-      registry.fill(HIST("etaphi"), track.eta(), track.phi());
-    }
-  }
-
   // NOTE SmallGroups includes soa::Filtered always
   Preslice<aod::CFTracksWithLabel> perCollision = aod::cftrack::cfCollisionId;
   void processEfficiency(soa::Filtered<aod::CFMcCollisions>::iterator const& mcCollision,
@@ -224,8 +215,17 @@ struct JFlucEfficiencyTask {
   {
     try {
       // Count MC events and fill MC z-vertex with centrality
+      auto multiplicity = mcCollision.multiplicity();
+      if (cfgCentBinsForMC > 0) {
+        if (collisions.size() == 0) {
+          return;
+        }
+        for (const auto& collision : collisions) {
+          multiplicity = collision.multiplicity();
+        }
+      }
       registry.fill(HIST("hEventCounterMC"), 0);
-      registry.fill(HIST("hZVertexMC"), mcCollision.posZ(), mcCollision.multiplicity());
+      registry.fill(HIST("hZVertexMC"), mcCollision.posZ(), multiplicity);
 
       if (debugMode) {
         LOGF(info, "Processing MC collision %d at z = %.3f", mcCollision.globalIndex(), mcCollision.posZ());
@@ -237,22 +237,22 @@ struct JFlucEfficiencyTask {
           continue;
 
         // Fill generated particle histograms
-        registry.fill(HIST("hPtGen"), mcParticle.pt(), mcCollision.multiplicity());
-        registry.fill(HIST("hEtaGen"), mcParticle.eta(), mcCollision.multiplicity());
+        registry.fill(HIST("hPtGen"), mcParticle.pt(), multiplicity);
+        registry.fill(HIST("hEtaGen"), mcParticle.eta(), multiplicity);
 
         if (mcParticle.sign() > 0) {
-          registry.fill(HIST("hPtGenPos"), mcParticle.pt(), mcCollision.multiplicity());
+          registry.fill(HIST("hPtGenPos"), mcParticle.pt(), multiplicity);
         } else if (mcParticle.sign() < 0) {
-          registry.fill(HIST("hPtGenNeg"), mcParticle.pt(), mcCollision.multiplicity());
+          registry.fill(HIST("hPtGenNeg"), mcParticle.pt(), multiplicity);
         }
 
         if (cfgEfficiencyFromData) {
-          registry.fill(HIST("hPtGenData"), mcParticle.pt(), mcCollision.multiplicity());
-          registry.fill(HIST("hEtaGenData"), mcParticle.eta(), mcCollision.multiplicity());
+          registry.fill(HIST("hPtGenData"), mcParticle.pt(), multiplicity);
+          registry.fill(HIST("hEtaGenData"), mcParticle.eta(), multiplicity);
           if (mcParticle.sign() > 0) {
-            registry.fill(HIST("hPtGenDataPos"), mcParticle.pt(), mcCollision.multiplicity());
+            registry.fill(HIST("hPtGenDataPos"), mcParticle.pt(), multiplicity);
           } else if (mcParticle.sign() < 0) {
-            registry.fill(HIST("hPtGenDataNeg"), mcParticle.pt(), mcCollision.multiplicity());
+            registry.fill(HIST("hPtGenDataNeg"), mcParticle.pt(), multiplicity);
           }
         }
       }
