@@ -422,7 +422,7 @@ struct Omega2012Analysis {
                          aod::ResoV0s const& resov0s)
   {
     auto cascV0sTuple = std::make_tuple(resocasc, resov0s);
-    Pair<ResoCollisions, aod::ResoCascades, aod::ResoV0s, BinningTypeVertexContributor> pairs{colBinning, nEvtMixing, -1, collisions, cascV0sTuple, &cache};
+    Pair<ResoCollisions, aod::ResoCascades, aod::ResoV0s, BinningTypeVertexContributor> pairs{colBinning, nEvtMixing, -1, collisions, cascV0sTuple, &cache, GroupedSlicePolicy::SkipEmpty};
 
     const bool kinCutsOn = core.kinCutsEnabled();
     for (const auto& [collision1, casc1, collision2, v0s2] : pairs) {
@@ -676,7 +676,7 @@ struct Omega2012Analysis {
                                 ResoMicroTracks const& resomicrotracks)
   {
     auto cascTracksTuple = std::make_tuple(resocasc, resomicrotracks);
-    Pair<ResoCollisions, aod::ResoCascades, ResoMicroTracks, BinningTypeVertexContributor> pairs{colBinning, nEvtMixing, -1, collisions, cascTracksTuple, &cache};
+    Pair<ResoCollisions, aod::ResoCascades, ResoMicroTracks, BinningTypeVertexContributor> pairs{colBinning, nEvtMixing, -1, collisions, cascTracksTuple, &cache, GroupedSlicePolicy::SkipEmpty};
     for (const auto& [collision1, casc1, collision2, tracks2] : pairs) {
       if (!core.passesEventCuts(collision1) || !core.passesEventCuts(collision2)) {
         continue;
